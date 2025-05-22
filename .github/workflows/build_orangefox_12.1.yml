@@ -18,7 +18,8 @@ jobs:
         export BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")
         cd ~
         sudo apt-get update
-        sudo apt install git aria2 python2 python-is-python2 linux-modules-extra-$(uname -r) -yq
+        sudo apt install git aria2 python2 linux-modules-extra-$(uname -r) -yq
+        sudo apt purge *python3* *pip3*
         git clone https://gitlab.com/OrangeFox/misc/scripts
         cd scripts
         sudo bash setup/android_build_env.sh
