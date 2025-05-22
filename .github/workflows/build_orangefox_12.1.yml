@@ -16,6 +16,9 @@ jobs:
     - name: Prepare the build environment
       run: |
         sudo lsblk
+        sudo ls -a /mnt
+        fuser -vm /mnt
+        fuser -km /mnt
         sudo umount /mnt
         sudo apt install parted -y
         sudo parted /dev/sdb --script rm 1
