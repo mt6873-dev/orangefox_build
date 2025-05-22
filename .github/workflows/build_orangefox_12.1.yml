@@ -16,8 +16,18 @@ jobs:
     - name: Prepare the build environment
       run: |
         sudo lsblk
+        sudo umount /mnt
+        sudo apt install parted -y
+        sudo parted /dev/sdb --script rm 1
+        lsblk /dev/sdb
+        sudo parted /dev/sdb --script mkpart primary ext4 1MiB 100%
+        sudo partprobe /dev/sdb
+        sudo mkfs.ext4 /dev/sdb1
+        lsblk -f /dev/sdb
+        sudo mount /dev/sdb1 /mnt
+        sudo chmod -R 777 /mnt
         export BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")
-        cd ~
+        cd /mnt
         sudo apt-get update
         sudo apt install git aria2 -y
         sudo DEBIAN_FRONTEND=noninteractive \
@@ -38,27 +48,26 @@ jobs:
 
     - name: Sync OrangeFox sources and minimal manifest
       run: |
-        mkdir ~/OrangeFox_sync
+        mkdir ~/mnt/OrangeFox_sync
         cd ~/OrangeFox_sync
         git clone https://gitlab.com/OrangeFox/sync.git
         cd ~/OrangeFox_sync/sync/
-        ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
+        ./orangefox_sync.sh --branch 12.1 --path /mnt/fox_12.1
     
     - name: Place device trees and kernel
       run: |
-        cd ~/fox_12.1
+        cd /mnt/fox_12.1
         git clone https://github.com/mt6873-dev/orangefox_device_xiaomi_atom.git -b ofrp_12.1 device/xiaomi/atom
 
     - name: Setup ccache
-      if: env.ENABLE_CCACHE == 'true'
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         key: build-orangefox-atom
-        max-size: 2G
+        max-size: 12G
 
     - name: Build Orangefox
       run: |
-        cd ~/fox_12.1
+        cd /mnt/fox_12.1
         /bin/bash
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_BUILD_DEVICE=atom
@@ -70,24 +79,24 @@ jobs:
     
     - name: Check orangefox output files
       run: 
-        ls -al ~/fox_12.1/out/target/product/
+        ls -al /mnt/fox_12.1/out/target/product/
         echo
-        ls -al ~/fox_12.1/out/target/product/atom/
+        ls -al /mnt/fox_12.1/out/target/product/atom/
 
     - name: Upload Orangefox
       uses: actions/upload-artifact@v4
       with:
         name: atom-${{ github.run_id }}
         path: |
-          ~/fox_12.1/out/target/product/atom/*.zip
-          ~/fox_12.1/out/target/product/atom/*.img
+          /mnt/fox_12.1/out/target/product/atom/*.zip
+          /mnt/fox_12.1/out/target/product/atom/*.img
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ~/fox_12.1/out/target/product/atom/*.img
-          ~/fox_12.1/out/target/product/atom/*.zip
+          /mnt/fox_12.1/out/target/product/atom/*.img
+          /mnt/fox_12.1/out/target/product/atom/*.zip
         name: atom-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
         body: |
