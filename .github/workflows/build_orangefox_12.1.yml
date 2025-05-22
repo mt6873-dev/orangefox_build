@@ -11,18 +11,8 @@ jobs:
     - name: Prepare the build environment
       run: |
         sudo lsblk
-        sudo ls -a /mnt
-        fuser -vm /mnt
-        fuser -km /mnt
-        sudo umount /mnt
-        sudo apt install parted -y
-        sudo parted /dev/sdb --script rm 1
-        lsblk /dev/sdb
-        sudo parted /dev/sdb --script mkpart primary ext4 1MiB 100%
-        sudo partprobe /dev/sdb
-        sudo mkfs.ext4 /dev/sdb1
-        lsblk -f /dev/sdb
-        sudo mount /dev/sdb1 /mnt
+        sudo swapoff /mnt/swapfile
+        sudo rm -rfv /mnt/*
         sudo chmod -R 777 /mnt
         export BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")
         cd /mnt
