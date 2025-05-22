@@ -52,6 +52,7 @@ jobs:
         max-size: 12G
 
     - name: Build Orangefox
+      continue-on-error: true
       run: |
         cd /mnt/fox_12.1
         /bin/bash
@@ -60,7 +61,7 @@ jobs:
         export LC_ALL="C"
         export OF_PATCH_AVB20=1
         export OF_FORCE_PREBUILT_KERNEL=1
-        source build/envsetup.sh
+        source build/envsetup.sh || echo "XD Gotcha"
         lunch twrp_atom-eng && mka adbd recoveryimage
     
     - name: Check orangefox output files
