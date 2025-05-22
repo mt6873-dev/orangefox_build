@@ -30,13 +30,11 @@ jobs:
         pngquant python2.7 python-all-dev re2c schedtool squashfs-tools subversion \
         texinfo unzip w3m xsltproc zip zlib1g-dev lzip \
         libxml-simple-perl libswitch-perl apt-utils \
-        libncurses5 curl python-is-python3 -y
-        sudo curl --create-dirs -L -o /usr/local/bin/repo -O -L https://storage.googleapis.com/git-repo-downloads/repo
-        sudo chmod a+rx /usr/local/bin/repo
+        libncurses5 curl python-is-python3 repo -y
 
     - name: Sync OrangeFox sources and minimal manifest
       run: |
-        mkdir ~/mnt/OrangeFox_sync
+        mkdir ~/OrangeFox_sync
         cd ~/OrangeFox_sync
         git clone https://gitlab.com/OrangeFox/sync.git
         cd ~/OrangeFox_sync/sync/
