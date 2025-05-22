@@ -1,0 +1,86 @@
+name: Build Orangefox 12.1 Branch for Redmi 10X 5G (atom)
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Orangefox by ${{ github.actor }}
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set swap to 10G
+      uses: pierotofy/set-swap-space@master
+      with:
+        swap-size-gb: 10
+
+    - name: Prepare the build environment
+      run: |
+        export BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")
+        cd ~
+        sudo apt-get update
+        sudo apt install git aria2 python2 python-is-python2 linux-modules-extra-$(uname -r) -yq
+        git clone https://gitlab.com/OrangeFox/misc/scripts
+        cd scripts
+        sudo bash setup/android_build_env.sh
+        sudo bash setup/install_android_sdk.sh
+
+    - name: Sync OrangeFox sources and minimal manifest
+      run: |
+        mkdir ~/OrangeFox_sync
+        cd ~/OrangeFox_sync
+        git clone https://gitlab.com/OrangeFox/sync.git
+        cd ~/OrangeFox_sync/sync/
+        ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
+    
+    - name: Place device trees and kernel
+      run: |
+        cd ~/fox_12.1
+        git clone https://github.com/mt6873-dev/orangefox_device_xiaomi_atom.git -b ofrp_12.1 device/xiaomi/atom
+
+    - name: Setup ccache
+      if: env.ENABLE_CCACHE == 'true'
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        key: build-orangefox-atom
+        max-size: 2G
+
+    - name: Build Orangefox
+      run: |
+        cd ~/fox_12.1
+        /bin/bash
+        export ALLOW_MISSING_DEPENDENCIES=true
+        export FOX_BUILD_DEVICE=atom
+        export LC_ALL="C"
+        export OF_PATCH_AVB20=1
+        export OF_FORCE_PREBUILT_KERNEL=1
+        source build/envsetup.sh
+        lunch twrp_atom-eng && mka adbd recoveryimage
+    
+    - name: Check orangefox output files
+      run: 
+        ls -al ~/fox_12.1/out/target/product/
+        echo
+        ls -al ~/fox_12.1/out/target/product/atom/
+
+    - name: Upload Orangefox
+      uses: actions/upload-artifact@v4
+      with:
+        name: atom-${{ github.run_id }}
+        path: |
+          ~/fox_12.1/out/target/product/atom/*.zip
+          ~/fox_12.1/out/target/product/atom/*.img
+
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ~/fox_12.1/out/target/product/atom/*.img
+          ~/fox_12.1/out/target/product/atom/*.zip
+        name: atom-${{ github.run_id }}
+        tag_name: ${{ github.run_id }}
+        body: |
+          Manifest: 12.1
+          Device: atom
+          Target: recovery
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
